@@ -67,7 +67,7 @@ diff_produto_PNAD <- t(apply(diff_setorial_total_PNAD, 1, "*", total_estado_PNAD
 matriz_maior_q_1 <- apply(diff_produto_PNAD, MARGIN =c(1,2), maior_q_1)
 
 # Empregos da Base Econômica voltada para exportação
-Eb_PNAD <- diff_produto_PNAD * matriz_maior_q_1
+Eb_PNAD <- matriz_maior_q_1
 
 # Multiplicador PNAD
 
