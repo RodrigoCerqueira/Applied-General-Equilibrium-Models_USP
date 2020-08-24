@@ -1,0 +1,204 @@
+---
+title: Applied General Equilibrium Models I and II - USP
+author: "Aluno: Rodrigo Cerqueira - NUSP 12108767"
+github: {user: RodrigoCerqueira, repo: Applied-General-Equilibrium-Models_USP}
+framework: bootstrap
+mode: selfcontained
+widgets: "nyt_home"
+highlighter: prettify
+assets:
+  css:
+    - "http://fonts.googleapis.com/css?family=Raleway:300"
+    - "http://fonts.googleapis.com/css?family=Oxygen"
+---
+
+<style>
+body{
+  font-family: 'Oxygen', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+h1,h2,h3,h4 {
+  font-family: 'Raleway', sans-serif;
+}
+
+.container { width: 1000px; }
+h3 {
+  background-color: #D4DAEC;
+  text-indent: 0px; 
+}
+h4 {
+  text-indent: 0px;
+}
+
+g-table-intro h4 {
+  text-indent: 0px;
+}
+</style>
+
+<a href="https://github.com/RodrigoCerqueira/Applied-General-Equilibrium-Models_USP/tree/master/Aula%202/Atividade"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"></a>
+
+# Multiplicadores de Base Econômica do Brasil, via PNAD e RAIS - 2015
+
+### Descrição
+
+Esta página corresponde aos códigos desenvolvidos em linguagem R para a resolução da Atividade 1a, referente à aula 2 do curso Applied General Equilibrium Models I and II - USP.
+
+### Atividade
+
+Calcular os multiplicadores de base econômica para os Estados brasileiros, utilizando o método do Quociente Locacional (QL).
+
+Para calcular o multiplicador da base econômica é preciso verificar as parcelas dos empregos totais dos setores que são voltados para a produção local e para a exportação, de modo que:
+$$E^T = E^B + E^L$$
+Onde $E^T$ = Empregos Totais, $E^B$ = Empregos Básicos (voltados à exportação) e $E^L$ = Empregos Locais.
+
+Como, segundo a teoria do modelo, a atividade local depende do comércio exterior, é possível definir um $r$, tal que $r = \frac{E^L}{E^T}$. Assim, pode-se verificar que $E^T = \frac{1}{(1-r)}E^B$. 
+<br/>
+O multiplicador de base econômica corresponde, portanto, a: $\frac{1}{(1-r)}$ 
+
+### Tratamento dos dados
+
+Foram utilizados os pacotes `readxl` para leitura dos dados em xlsx, os pacotes `dplyr` e `tidyr` para manipulação dos dados, o pacote `ggplot2` para geração do gráfico e os pacotes `knitr` e `kableExtra` para elaboração deste relatório escrito em `R Markdown`.
+
+```{r message=FALSE, warning=FALSE, include=T}
+# Carregando pacotes
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+<h4>Carregando datasets 
+```{r message=FALSE, warning=FALSE, include=T} 
+#carregando intervalo de dados dos arquivos xlsx
+PNAD <- read_excel("Emprego_UF_2015.xlsx", sheet = 1, range = "B5:AC23")
+RAIS <- read_excel("Emprego_UF_2015.xlsx", sheet = 2, range = "B5:AC72")
+```
+---
+### Calculando QL
+
+<h4>Calculando o QL com dados da PNAD
+```{r message=FALSE, warning=FALSE, include=FALSE}
+PNAD_ <- PNAD[,2:28]
+RAIS_ <- RAIS[,2:28]
+```
+```{r message = FALSE, warning = FALSE, include = TRUE}
+#criando variáveis para o cálculo dos QL da PNAD
+total_estado_PNAD <- apply(PNAD_, 2, sum)
+total_setor_PNAD <- data.frame(apply(PNAD_, 1, sum))
+
+Particip_setorial_UF_PNAD <- sweep(PNAD_, 2, total_estado_PNAD, "/")
+Particip_setorial_total_PNAD <- total_setor_PNAD/sum(total_setor_PNAD)
+
+QL_PNAD <- data.frame(apply(Particip_setorial_UF_PNAD, 2, "/", Particip_setorial_total_PNAD))
+
+```
+```{r message = FALSE, warning = FALSE, include = FALSE}
+QL_PNAD <- cbind(PNAD$`Sistema de Contas Regionais (SCR)`, QL_PNAD)
+names(QL_PNAD) <- names(PNAD)
+
+library(knitr)
+library(kableExtra)
+```
+<h4> QL com dados da PNAD
+```{r echo=FALSE, results='asis'}
+kable(QL_PNAD, align = "l") %>% kable_styling(font_size = 12) %>% scroll_box(width = "900px", height = "500px")
+```
+
+<h4>Calculando o QL com dados da RAIS
+```{r message = FALSE, warning=FALSE, include=TRUE}
+#criando variáveis para o cálculo dos QL da PNAD
+total_estado_RAIS <- apply(RAIS_, 2, sum)
+total_setor_RAIS <- data.frame(apply(RAIS_, 1, sum))
+
+Particip_setorial_UF_RAIS <- sweep(RAIS_, 2, total_estado_RAIS, "/")
+Particip_setorial_total_RAIS <- total_setor_RAIS/sum(total_setor_RAIS)
+
+QL_RAIS <- data.frame(apply(Particip_setorial_UF_RAIS, 2, "/", Particip_setorial_total_RAIS))
+```
+```{r message = FALSE, warning = FALSE, include = FALSE}
+QL_RAIS <- cbind(RAIS$`Sistema de Contas Nacionais (SCN)`, QL_RAIS)
+names(QL_RAIS) <- names(RAIS)
+```
+<h4>QL com dados da RAIS
+```{r echo=FALSE, results='asis'}
+kable(QL_RAIS, align = "c") %>% kable_styling(font_size = 12) %>% scroll_box(width = "900px", height = "500px")
+```
+
+### Multiplicadores de Base Econômica
+
+A partir dos QL serão calculados os multiplicadores de base econômica.
+Para calcular o multiplicador, é preciso verificar quais os setores de cada um dos Estados que apresentam $QL > 1$
+
+<h4>Criação de função para eliminar empregos de setores com $QL<1$
+```{r message = FALSE, warning = FALSE, include = TRUE}
+# função para filtro dos valores de QL maiores que 1
+maior_q_1 <- function(x) {
+  if (x>1) {
+    x*1
+  } else {
+    x*0
+  }
+}
+
+# Eliminação dos empregos com QL<1 da base da PNAD
+diff_setorial_total_PNAD <- as.matrix(data.frame(apply(Particip_setorial_UF_PNAD, 2, "-", Particip_setorial_total_PNAD)))
+
+diff_produto_PNAD <- t(apply(diff_setorial_total_PNAD, 1, "*", total_estado_PNAD))
+
+matriz_maior_q_1 <- apply(diff_produto_PNAD, MARGIN =c(1,2), maior_q_1)
+
+# Eliminação dos empregos com QL<1 da base da RAIS
+
+diff_setorial_total_RAIS <- as.matrix(data.frame(apply(Particip_setorial_UF_RAIS, 2, "-", Particip_setorial_total_RAIS)))
+
+diff_produto_RAIS <- t(apply(diff_setorial_total_RAIS, 1, "*", total_estado_RAIS))
+
+matriz_maior_q_1_RAIS <- apply(diff_produto_RAIS, MARGIN = c(1,2), maior_q_1)
+```
+
+<h4>Cálculo do multiplicador de base econômica
+```{r message = FALSE, warning = FALSE, include = TRUE}
+# Empregos da Base Econômica voltada para exportação
+Eb_PNAD <- matriz_maior_q_1
+
+Eb_RAIS <- matriz_maior_q_1_RAIS
+
+# Multiplicadores PNAD e RAIS
+
+Multiplicador_PNAD <- data.frame(total_estado_PNAD / apply(Eb_PNAD, 2, sum))
+
+Multiplicador_RAIS <- data.frame(total_estado_RAIS / apply(Eb_RAIS, 2, sum))
+```
+
+### Resultados
+
+Comparação dos resultados dos multiplicadores
+```{r message = FALSE, warning = FALSE, include = TRUE}
+# Juntando os resultados
+comparacao <- data.frame(cbind(rownames(Multiplicador_PNAD), Multiplicador_PNAD, Multiplicador_RAIS), row.names = NULL)
+
+names(comparacao) = c("UF","PNAD", "RAIS")
+```
+<h4> Tabela dos resultados
+```{r echo=FALSE, results='asis'}
+kable(comparacao, align = "l") %>% kable_styling(font_size = 12) %>% scroll_box(width = "900px", height = "500px")
+```
+
+<h4> Gráfico dos resultados
+```{r message = FALSE, warning = FALSE, include = TRUE}
+#ajuste do formato dos dados para geração do gráfico
+dados_grafico <- comparacao %>% gather("dados", "multiplicador", -UF)
+
+#elaboração do gráfico
+grafico <- ggplot(dados_grafico, aes(x = UF, y = multiplicador, fill = dados)) +
+  geom_col(position = "dodge") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+grafico
+```
+
+### Breve análise dos resultados
+
+O cálculo dos multiplicadores de base econômica a partir dos dois bancos de dados (PNAD e RAIS) mostram que, das 27 Unidades da Federação, apenas 5 apresentaram valores de multiplicador calculados a partir da RAIS maiores que os calculados por meio da PNAD. Os Estados foram: Maranhão, Piauí, Bahia, Rio de Janeiro e São Paulo. Estes resultados parecem indicar que para estes estados, os impactos do empregos dos setores exportadores são maiores no setores mais formalizados (RAIS) do que nos setores com maior grau de informalidade. Para os demais estados, a análise se mostra oposta: parece haver um maior impacto do emprego dos setores exportadores, sobre o emprego informal. 

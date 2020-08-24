@@ -1,5 +1,8 @@
 ########## Carregando pacotes ------------------------
 library(readxl)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
 
 ######### Carregando dataset -------------------------
 
@@ -48,8 +51,9 @@ QL_RAIS <- data.frame(apply(Particip_setorial_estados_RAIS, 2, "/", Particip_set
 
 ########### MULTIPLICADOR DE BASE ECONÔMICA
 
-## PNAD 
+## calculando os multiplicadores para PNAD 
 
+# função para filtro dos valores maiores que 1
 maior_q_1 <- function(x) {
   if (x>1) {
     x*1
@@ -59,8 +63,39 @@ maior_q_1 <- function(x) {
 }
 
 diff_setorial_total_PNAD <- as.matrix(data.frame(apply(Particip_setorial_estados, 2, "-", Particip_setorial_total)))
-diff_produto_PNAD <- t(apply(setorial_menos_total_PNAD, 1, "*", total_estado_PNAD))
-matriz_maior_q_1 <- apply(teste2, MARGIN =c(1,2), maior_q_1)
+diff_produto_PNAD <- t(apply(diff_setorial_total_PNAD, 1, "*", total_estado_PNAD))
+matriz_maior_q_1 <- apply(diff_produto_PNAD, MARGIN =c(1,2), maior_q_1)
 
-Multiplicador_PNAD <- diff_produto_PNAD * matriz_maior_q_1
+# Empregos da Base Econômica voltada para exportação
+Eb_PNAD <- diff_produto_PNAD * matriz_maior_q_1
 
+# Multiplicador PNAD
+
+Multiplicador_PNAD <- data.frame(total_estado_PNAD / apply(Eb_PNAD, 2, sum))
+
+## Calculando os multiplicadores para RAIS
+
+diff_setorial_total_RAIS <- as.matrix(data.frame(apply(Particip_setorial_estados_RAIS, 2, "-", Particip_setorial_total_RAIS)))
+diff_produto_RAIS <- t(apply(diff_setorial_total_RAIS, 1, "*", total_estado_RAIS))
+matriz_maior_q_1_RAIS <- apply(diff_produto_RAIS, MARGIN = c(1,2), maior_q_1)
+
+# Empregos da Base Econômica voltada para exportação
+
+Eb_RAIS <- diff_produto_RAIS * matriz_maior_q_1_RAIS
+
+# Calculo do Multiplicador para RAIS
+
+Multiplicador_RAIS <- data.frame(total_estado_RAIS / apply(Eb_RAIS, 2, sum))
+
+######### Gráfico ----------------------------------------------
+
+dados_grafico <- data.frame(cbind(rownames(Multiplicador_PNAD), Multiplicador_PNAD, Multiplicador_RAIS), row.names = NULL)
+names(dados_grafico) = c("UF","PNAD", "RAIS")
+
+dados_grafico <- dados_grafico %>% gather("dados", "multiplicador", -UF)
+
+grafico <- ggplot(dados_grafico, aes(x = UF, y = multiplicador, fill = dados)) +
+  geom_col(position = "dodge") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+grafico
