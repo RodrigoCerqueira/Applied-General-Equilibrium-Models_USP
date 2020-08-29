@@ -202,3 +202,7 @@ grafico
 ### Breve análise dos resultados
 
 O cálculo dos multiplicadores de base econômica a partir dos dois bancos de dados (PNAD e RAIS) mostram que, das 27 Unidades da Federação, apenas 5 apresentaram valores de multiplicador calculados a partir da RAIS maiores que os calculados por meio da PNAD. Os Estados foram: Maranhão, Piauí, Bahia, Rio de Janeiro e São Paulo. Estes resultados parecem indicar que para estes estados, os impactos do empregos dos setores exportadores são maiores no setores mais formalizados (RAIS) do que nos setores com maior grau de informalidade. Para os demais estados, a análise se mostra oposta: parece haver um maior impacto do emprego dos setores exportadores, sobre o emprego informal. 
+<br/>
+Para alguns dos estados a diferença entre o multiplicador calculado pela PNAD e aquele calculado pela RAIS apresentam diferenças grandes. O estado do Rio Grande do Sul apresenta o resultado mais marcante, como pode ser visto no gráfico acima. Estes resultados mostram que as há diferenças substanciais a depender da base de dados utilizada. Apesar de permitir uma maior abertura setorial, os dados da RAIS só mostram informações sobre o mercado de trabalho formal. Por outro lado, apesar de incluir as ocupações informais, a PNAD apresenta, além das limitações de abertura setorial, os problemas os demais problemas provenientes de uma pesquisa amostral. 
+<br/>
+Este exercício reforça que é preciso escolher com cautela as bases de dados, tendo em vista qual o objetivo do estudo e as limitações das bases utilizadas.
