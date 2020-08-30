@@ -2,6 +2,8 @@
 library(readxl)
 library(dplyr)
 library(ggplot2)
+library(ggrepel)
+library(plotly)
 
 ######### leitura dos arquivos
 MIP_2017 <- read_excel("MIP_2017.xlsx", sheet =2, range = "A3:CB97")
@@ -79,7 +81,7 @@ efeito_indireto <- MP - efeito_inicial - efeito_direto
 
 nomes <- data.frame(colnames(Z))
 
-efeitos <- data.frame(nomes, as.vector(c(1:68)), efeito_total, efeito_renda, efeito_indireto, efeito_direto, efeito_inicial)
+efeitos <- data.frame(nomes, as.vector(c(nrow(B))), efeito_total, efeito_renda, efeito_indireto, efeito_direto, efeito_inicial)
 colnames(efeitos) <- c("setor","cod", "efeito total", "efeito renda", "efeito indireto", "efeito direto", "efeito inicial")
 
 ######### gráficos ------------
@@ -151,3 +153,41 @@ m_emprego_II <- g_emprego_/t(coef_emprego)
 multiplicadores <- data.frame(nomes, m_VA_I, m_imp_I, m_emprego_I, m_VA_II, m_imp_II, m_emprego_II)
 names(multiplicadores) <- c("setor", "VA_I", "impostos_I", "empregos_I", "VA_II", "impostos_II", "empregos_II")
 
+########## Coeficiente de Rasmussen-Hirschman de Ligação para frente Uio e para Trás Uoj  - modelo aberto -----
+
+Uio = as.matrix(apply(B, 1, mean))/mean(B)
+
+Uoj = as.matrix(apply(B, 2, mean))/mean(B)
+
+indices_ligacao  <- data.frame(nomes, Uio, Uoj)
+names(indices_ligacao) <- c("setor", "Uio", "Uoj")
+
+indices_ligacao$chave <- ifelse(indices_ligacao$Uio > 1 & indices_ligacao$Uoj > 1, "Setor chave", "-")
+
+# gráfico
+
+dispersão_indices <- ggplot(indices_ligacao, aes(label =setor))+
+  geom_point(aes(x = Uio, y = Uoj, colour = chave), size = 2) +
+  theme_bw() +
+  geom_hline(yintercept = 1)+
+  geom_vline(xintercept = 1)+
+  scale_color_manual(values = c("#393b44", "#318fb5")) +
+  theme(legend.position = "none") +
+  ylab("Encadeamento para trás (Uj)") +
+  xlab("Encadeamento para frente (Ui)")+
+  ggtitle("Índices de ligação de Rasmussen-Hirschman, Brasil - 2017")+
+  geom_text_repel(data = indices_ligacao[indices_ligacao$chave == "Setor chave",], 
+                  aes(x = Uio, y = Uoj, label = setor),
+                  size = 2.5)+
+  annotate(geom = "text", x = max(Uio)+0.1, y = max(Uoj)+0.1, label = "Setores-chave\n(Ui > 1 e Uj > 1)")+
+  annotate(geom = "text", x = 0.15, y = min(Uoj)+0.02, label = "não fortemente \nconectado com \noutros setores \n(Uj < 1 e Ui < 1)")+
+  annotate(geom = "text", x = 0.15, y = max(Uoj)+0.08, label = "Dependente da\noferta intersetorial\nUj > 1")+
+  annotate(geom = "text", x = max(Uio)+0.05, y = min(Uoj)+0.01, label = "Dependente da\nodemanda intersetorial\nUi > 1")
+
+dispersão_indices
+
+dispersão_indices_html <- ggplotly(dispersão_indices, tooltip = c("x", "y", "label"))
+
+dispersão_indices_html
+
+htmlwidgets::saveWidget(dispersão_indices_html,"dispersão_indices.html")
