@@ -1,0 +1,145 @@
+---
+title: Applied General Equilibrium Models I and II - USP
+author: "Aluno: Rodrigo Cerqueira - NUSP 12108767"
+github: {user: RodrigoCerqueira, repo: Applied-General-Equilibrium-Models_USP}
+framework: bootstrap
+mode: selfcontained
+widgets: "nyt_home"
+highlighter: prettify
+assets:
+  css:
+    - "http://fonts.googleapis.com/css?family=Raleway:300"
+    - "http://fonts.googleapis.com/css?family=Oxygen"
+---
+
+<style>
+body{
+  font-family: 'Oxygen', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+h1,h2,h3,h4 {
+  font-family: 'Raleway', sans-serif;
+}
+
+.container { width: 1000px; }
+h3 {
+  background-color: #D4DAEC;
+  text-indent: 0px; 
+}
+h4 {
+  text-indent: 0px;
+}
+
+g-table-intro h4 {
+  text-indent: 0px;
+}
+</style>
+
+<a href="https://github.com/RodrigoCerqueira/Applied-General-Equilibrium-Models_USP/tree/master/Aula%206/Atividades"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"></a>
+
+# Identificação de setores-chave
+
+### Descrição
+
+Esta página corresponde aos códigos desenvolvidos em linguagem R para a resolução da Atividade da aulas 6 do curso Applied General Equilibrium Models I and II - USP.
+
+### Atividades 
+
+<ol>
+<li>Calcule os índices de ligação para o setores econômicos do Brasil e identifique os **setores-chave**.</li>
+
+### Tratamento dos dados
+
+Foram utilizados os pacotes `readxl` para leitura dos dados em xlsx, os pacotes `dplyr` para manipulação dos dados, os pacotes `ggplot2`, `ggrepel` e `plotly` para geração do gráfico e os pacotes `knitr` e `kableExtra` para elaboração deste relatório escrito em `R Markdown`.
+
+```{r message=FALSE, warning=FALSE, include=T}
+# Carregando pacotes
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(plotly)
+library(knitr)
+library(kableExtra)
+```
+
+<h4>Carregando datasets 
+```{r message=FALSE, warning=FALSE, include=T} 
+#carregando intervalo de dados dos arquivos xlsx
+MIP_2017 <- read_excel("MIP_2017.xlsx", sheet =2, range = "A3:CB97")
+```
+
+<h4>Seleção de matrizes e vetores necessários para os cálculos
+```{r message=FALSE, warning=FALSE, include=T} 
+Z <- MIP_2017[2:69,4:71] 
+VBP <- MIP_2017[93,4:71]
+
+nomes <- data.frame(colnames(Z))
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Calculando as Matrizes A e B
+A <- sweep(Z, 2, t(VBP), "/") %>% unname() %>% as.matrix()
+
+I <- diag(nrow(A))
+B <- solve(I - A)
+```
+
+### Calculando os Índices de ligação de Rasmussen-Hirschman
+
+<h4>Índice de ligação para frente
+```{r message=FALSE, warning=FALSE, include=T}
+Uio = as.matrix(apply(B, 1, mean))/mean(B)
+
+```
+<h4>Índice de ligação para trás
+```{r message=FALSE, warning=FALSE, include=T}
+Uoj = as.matrix(apply(B, 2, mean))/mean(B)
+```
+
+```{r message=FALSE, warning=FALSE, include=F}
+#obtendo nome dos setores
+indices_ligacao  <- data.frame(nomes, Uio, Uoj)
+names(indices_ligacao) <- c("setor", "Uio", "Uoj")
+```
+
+<h4>Tabela 1 - Índices de ligação de Rasmussen-Hirscham, Brasil 2017
+```{r echo=FALSE, results='axis'}
+kable(indices_ligacao) %>% kable_styling(font_size = 14) %>% scroll_box(width = "900px", height = "500px")
+```
+
+<h4> Gráfico 1 - Índices de ligação de Rasmussen-Hirscham, Brasil 2017
+```{r message=F, warning=F, include=FALSE}
+#criando variável para setores chave
+indices_ligacao$chave <- ifelse(indices_ligacao$Uio > 1 & indices_ligacao$Uoj > 1, "Setor chave", "-")
+#criação do gráfico em ggploy
+dispersão_indices <- ggplot(indices_ligacao, aes(label =setor))+
+  geom_point(aes(x = Uio, y = Uoj, colour = chave), size = 2) +
+  theme_bw() +
+  geom_hline(yintercept = 1)+
+  geom_vline(xintercept = 1)+
+  scale_color_manual(values = c("#393b44", "#318fb5")) +
+  theme(legend.position = "none") +
+  ylab("Encadeamento para trás (Uj)") +
+  xlab("Encadeamento para frente (Ui)")+
+  xlim(min(Uio)-0.5, max(Uio)+0.1)+
+  geom_text_repel(data = indices_ligacao[indices_ligacao$chave == "Setor chave",], 
+                  aes(x = Uio, y = Uoj, label = setor),
+                  size = 2.5)+
+  annotate(geom = "text", x = max(Uio)-0.1, y = max(Uoj)+0.1, label = "Setores-chave\n(Ui > 1 e Uj > 1)")+
+  annotate(geom = "text", x = min(Uio)-0.35, y = min(Uoj)+0.02, label = "não fortemente \nconectado com \noutros setores \n(Uj < 1 e Ui < 1)")+
+  annotate(geom = "text", x = min(Uio)-0.35, y = max(Uoj)+0.08, label = "Dependente da\noferta intersetorial\nUj > 1")+
+  annotate(geom = "text", x = max(Uio)-0.1, y = min(Uoj)+0.01, label = "Dependente da\ndemanda intersetorial\nUi > 1")
+
+#transformando em gráfico dinâmico
+dispersão_indices_html <- ggplotly(dispersão_indices, tooltip = c("x", "y", "label"))
+```
+
+```{r fig.width=10, fig.height=8, echo=FALSE}
+dispersão_indices_html
+```
+
+### Análise dos resultados
+tetetet

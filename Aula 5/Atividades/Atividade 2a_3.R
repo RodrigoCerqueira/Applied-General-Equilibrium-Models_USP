@@ -8,7 +8,7 @@ library(plotly)
 ######### leitura dos arquivos
 MIP_2017 <- read_excel("MIP_2017.xlsx", sheet =2, range = "A3:CB97")
 
-#selecão da matriz e vetores iniciais apra os cálculos
+#selecão da matrizes e vetores iniciais para os cálculos
 Z <- MIP_2017[2:69,4:71] 
 
 VBP <- MIP_2017[93,4:71]
@@ -81,30 +81,52 @@ efeito_indireto <- MP - efeito_inicial - efeito_direto
 
 nomes <- data.frame(colnames(Z))
 
-efeitos <- data.frame(nomes, as.vector(c(nrow(B))), efeito_total, efeito_renda, efeito_indireto, efeito_direto, efeito_inicial)
+efeitos <- data.frame(nomes, as.vector(c(1:nrow(B))), efeito_total, efeito_renda, efeito_indireto, efeito_direto, efeito_inicial)
 colnames(efeitos) <- c("setor","cod", "efeito total", "efeito renda", "efeito indireto", "efeito direto", "efeito inicial")
 
 ######### gráficos ------------
 
+
 graf_renda <- efeitos %>% 
-  arrange(`efeito renda`) %>% 
+  arrange(-`efeito renda`) %>% 
+  mutate(setor = factor(setor, levels = setor)) 
+ 
+graf_renda$pos <- NA
+ 
+graf_renda[1:5,]$pos <- "top"
+
+graf_renda <- graf_renda %>% 
+  arrange(-cod) %>% 
   mutate(setor = factor(setor, levels = setor)) %>% 
   ggplot() +
-  geom_bar(aes(x = setor, y = `efeito renda`), stat = "identity") +
-  coord_flip()
+  geom_bar(aes(x = setor, y = `efeito renda`, fill = pos), stat = "identity") +
+  coord_flip()+
+  theme_classic()+
+  theme(legend.position = "none")
 
 graf_renda
 
 
 graf_indireto <- efeitos %>% 
-  arrange(`efeito indireto`) %>% 
+  arrange(-`efeito indireto`) %>% 
+  mutate(setor = factor(setor, levels = setor))
+
+graf_indireto$pos <- NA
+
+graf_indireto[1:5,]$pos <- "top"
+
+graf_indireto <- graf_indireto %>%
+  arrange(-cod) %>% 
   mutate(setor = factor(setor, levels = setor)) %>% 
-  ggplot()+
-  geom_bar(aes(x = setor, y = `efeito indireto`), stat = "identity")+
-  coord_flip()
+  ggplot() +
+  geom_bar(aes(x = setor, y = `efeito indireto`, fill = pos), stat = "identity") +
+  coord_flip()+
+  theme_classic()+
+  theme(legend.position = "none")
 
 graf_indireto
 
+library(ggpubr)
 ######## multiplicadores de VA, impostos e empregos Tipo I (modelo aberto)
 
 #coeficientes
@@ -148,6 +170,13 @@ m_imp_II <- g_imp_/t(coef_imp)
 
 m_emprego_II <- g_emprego_/t(coef_emprego)
 
+#diferenças
+
+dif_VA <- m_VA_II - m_VA_I
+
+razao_VA <- m_VA_II/m_VA_I
+
+
 #unificando
 
 multiplicadores <- data.frame(nomes, m_VA_I, m_imp_I, m_emprego_I, m_VA_II, m_imp_II, m_emprego_II)
@@ -165,6 +194,7 @@ names(indices_ligacao) <- c("setor", "Uio", "Uoj")
 indices_ligacao$chave <- ifelse(indices_ligacao$Uio > 1 & indices_ligacao$Uoj > 1, "Setor chave", "-")
 
 # gráfico
+
 
 dispersão_indices <- ggplot(indices_ligacao, aes(label =setor))+
   geom_point(aes(x = Uio, y = Uoj, colour = chave), size = 2) +

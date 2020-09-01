@@ -1,0 +1,170 @@
+---
+title: "Applied General Equilibrium Models I and II - USP"
+author: 'Aluno: Rodrigo Cerqueira - NUSP 12108767'
+github:
+  user: RodrigoCerqueira
+  repo: Applied-General-Equilibrium-Models_USP
+framework: bootstrap
+mode: selfcontained
+widgets: nyt_home
+highlighter: prettify
+assets:
+  css:
+  - http://fonts.googleapis.com/css?family=Raleway:300
+  - http://fonts.googleapis.com/css?family=Oxygen
+---
+
+<style>
+body{
+  font-family: 'Oxygen', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+h1,h2,h3,h4 {
+  font-family: 'Raleway', sans-serif;
+}
+
+.container { width: 1000px; }
+h3 {
+  background-color: #D4DAEC;
+  text-indent: 0px; 
+}
+h4 {
+  text-indent: 0px;
+}
+
+g-table-intro h4 {
+  text-indent: 0px;
+}
+</style>
+
+<a href="https://github.com/RodrigoCerqueira/Applied-General-Equilibrium-Models_USP/tree/master/Aula%205/Atividades"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"></a>
+
+# Multiplicadores e Geradores - MIP Brasil, 2017
+
+### Descrição
+
+Esta página corresponde aos códigos desenvolvidos em linguagem R para a resolução da Atividade 3, referente às aulas 4 e 5 do curso Applied General Equilibrium Models I and II - USP.
+
+### Atividades 
+
+<ol>
+<li>Preparar os coeficientes geradores de multiplicadores (ci) para as seguintes variáveis: **valor adicionado**, **impostos sobre produtos**, e **emprego**.</li>
+<li>Calcular os multiplicadores para as variáveis indicadas usando os modelos aberto e fechado de Leontief. Compare os resultados setoriais para cada variável.</li>
+
+### Tratamento dos dados
+
+Foram utilizados os pacotes `readxl` para leitura dos dados em xlsx, os pacotes `dplyr` para manipulação dos dados, os pacotes `ggplot2`, `ggrepel` e `plotly` para geração do gráfico e os pacotes `knitr` e `kableExtra` para elaboração deste relatório escrito em `R Markdown`.
+
+```{r message=FALSE, warning=FALSE, include=T}
+# Carregando pacotes
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(plotly)
+library(knitr)
+library(kableExtra)
+```
+
+<h4>Carregando datasets 
+```{r message=FALSE, warning=FALSE, include=T} 
+#carregando intervalo de dados dos arquivos xlsx
+MIP_2017 <- read_excel("MIP_2017.xlsx", sheet =2, range = "A3:CB97")
+```
+
+<h4>Seleção de matrizes e vetores necessários para os cálculos
+```{r message=FALSE, warning=FALSE, include=T} 
+Z <- MIP_2017[2:69,4:71] 
+VBP <- MIP_2017[93,4:71]
+VA <- MIP_2017[89,4:71]
+salarios <- MIP_2017[81,4:71]
+c_familias <- MIP_2017[2:69,76]
+c_total <- MIP_2017[79,76]
+imp_ICMS <- MIP_2017[73,4:71]
+imp_IPI <- MIP_2017[75,4:71]
+imp_outros <- MIP_2017[77,4:71]
+imp <- imp_ICMS + imp_IPI + imp_outros
+emprego <- MIP_2017[94,4:71]
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# Matrizes A e B do modelo aberto
+A <- sweep(Z, 2, t(VBP), "/") %>% unname() %>% as.matrix()
+
+I <- diag(nrow(A))
+B <- solve(I - A)
+
+# Matrizes A e B do modelo fechado
+
+hc <- t(data.frame(apply(c_familias, 1, "/", c_total))) %>% unname() %>% as.matrix()
+hr <- sweep(salarios, 2, t(VBP), "/") %>% cbind(0) %>% unname() %>% as.matrix()         
+
+A_barra <- cbind(A, hc) %>% rbind(hr)         
+
+I_ <- diag(nrow(A_barra))
+B_barra <- solve(I_ - A_barra)
+```
+
+### Calculando os Geradores de multiplicadores
+
+<h4>Coeficientes
+```{r message=FALSE, warning=FALSE, include=T}
+coef_VA <- VA/VBP
+coef_imp <- imp/VBP
+coef_emprego <- emprego/VBP
+```
+<h4>Geradores do Tipo I - modelo aberto
+```{r message=FALSE, warning=FALSE, include=T}
+g_VA <- data.frame(apply(sweep(B, 1, t(coef_VA), "*"),2,sum))
+g_imp <- data.frame(apply(sweep(B, 1, t(coef_imp), "*"),2,sum))
+g_emprego <- data.frame(apply(sweep(B, 1, t(coef_emprego), "*"),2,sum))
+```
+
+<h4>Geradores do Tipo II - modelo fechado
+```{r message=FALSE, warning=FALSE, include=T}
+g_VA_ <- data.frame(apply(sweep(B_barra[-nrow(B_barra),-ncol(B_barra)], 1, t(coef_VA), "*"),2,sum))
+g_imp_ <- data.frame(apply(sweep(B_barra[-nrow(B_barra),-ncol(B_barra)], 1, t(coef_imp), "*"),2,sum))
+g_emprego_ <- data.frame(apply(sweep(B_barra[-nrow(B_barra),-ncol(B_barra)], 1, t(coef_emprego), "*"),2,sum))
+```
+
+```{r message=FALSE, warning=FALSE, include=F}
+#obtendo nome dos setores
+nomes <- data.frame(colnames(Z))
+
+geradores <- data.frame(nomes, as.vector(1:nrow(B)), g_VA, g_imp, g_emprego, g_VA_, g_imp_, g_emprego_)
+names(geradores) <- c("Setor", "cod", "VA - tipo I", "Impostos - tipo I", "Emprego - tipo I", "VA - tipo II", "Impostos - tipo II", "Emprego - tipo II")
+```
+
+<h4> Tabela 1 - Geradores de multiplicares, MIP Brasil 2017
+```{r echo=FALSE, results='asis'}
+kable(geradores) %>% kable_styling(font_size = 14) %>% scroll_box(width = "900px", height = "500px")
+```
+
+### Calculando os multiplicadores
+
+<h4> Multiplicadores do tipo I
+```{r message=F, warning=F}
+m_VA_I <- g_VA/t(coef_VA)
+m_imp_I <- g_imp/t(coef_imp)
+m_emprego_I <- g_emprego/t(coef_emprego)
+```
+<h4> Multiplicadores do tipo II
+```{r message=F, warning=F}
+m_VA_II <- g_VA_/t(coef_VA)
+m_imp_II <- g_imp_/t(coef_imp)
+m_emprego_II <- g_emprego_/t(coef_emprego)
+```
+
+```{r message=FALSE, warning=FALSE, include=F}
+multiplicadores <- data.frame(nomes, m_VA_I, m_imp_I, m_emprego_I, m_VA_II, m_imp_II, m_emprego_II)
+names(multiplicadores) <- c("setor", "VA - tipo I", "impostos - tipo I", "empregos - tipo I", "VA - tipo II", "impostos - tipo II", "empregos - tipo II")
+```
+<h4>Tabela 2 - Multiplicadores, MIP Brasil 2017
+```{r echo=FALSE, results='asis'}
+kable(multiplicadores) %>% kable_styling(font_size = 14) %>% scroll_box(width = "900px", height = "500px")
+```
+
+### Análise dos resultados
+Os resultados da Tabela 2 mostram que os indicadores do Tipo II são sempre maiores que seus respectivos do Tipo I. Isso acontece justamente pelo uso da matriz inversa de leontief do modelo fechado, com a incorporação do efeito renda. Ao endogeneizar as famílias, por meio dos salários e consumo, o modelo fechado, e consequentemente seus multiplicadores, induzem um novo efeito, dado pelo crescimento da renda da economia, que se transforma em consumo e retorna à economia, gerando novas movimentações e encadeamentos.Isto mostra que, análises de possíveis impactos em modelos de insumo-produto, devem, preferivelmente, adotar os multiplicadores do tipo II, uma vez que os do tipo I, tendem a subestimar os impactos, ao não endogeneizar as famílias. 
