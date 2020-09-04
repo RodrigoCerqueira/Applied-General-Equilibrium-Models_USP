@@ -1,0 +1,261 @@
+---
+title: "Applied General Equilibrium Models I and II - USP"
+author: 'Aluno: Rodrigo Cerqueira - NUSP 12108767'
+github:
+  user: RodrigoCerqueira
+  repo: Applied-General-Equilibrium-Models_USP
+framework: bootstrap
+mode: selfcontained
+widgets: nyt_home
+highlighter: prettify
+assets:
+  css:
+  - http://fonts.googleapis.com/css?family=Raleway:300
+  - http://fonts.googleapis.com/css?family=Oxygen
+---
+
+<style>
+body{
+  font-family: 'Oxygen', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+h1,h2,h3,h4 {
+  font-family: 'Raleway', sans-serif;
+}
+
+.container { width: 1000px; }
+h3 {
+  background-color: #D4DAEC;
+  text-indent: 0px; 
+}
+h4 {
+  text-indent: 0px;
+}
+
+g-table-intro h4 {
+  text-indent: 0px;
+}
+</style>
+
+<a href="https://github.com/RodrigoCerqueira/Applied-General-Equilibrium-Models_USP/tree/master/Aula%205/Atividades/Desafio"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"></a>
+
+# Desafio - MIPs Brasil, 1985, 1995, 2005 e 2015
+
+### Descrição
+
+Esta página corresponde aos códigos desenvolvidos em linguagem R para a resolução do Desafio, referente à aula do curso Applied General Equilibrium Models I and II - USP.
+
+### Atividades 
+
+Com base nas matrizes de insumo-produto do Brasil para os anos de 1985, 1995, 2005 e 2015, encontra o montante de investimento necessários (em R$ de 2015) para se obter **um** equivalente-homem-ano
+
+### Tratamento dos dados
+
+Foram utilizados os pacotes `readxl` para leitura dos dados em xlsx, os pacotes `dplyr` para manipulação dos dados, os pacotes `ggplot2`, `ggrepel` e `plotly` para geração do gráfico e os pacotes `knitr` e `kableExtra` para elaboração deste relatório escrito em `R Markdown`.
+
+
+O primeiro passo consiste em baixar, no site do IBGE, os arquivos referentes às matrizes de insumo-produto para os anos de **1985**, **1995**, **2005** e **2015**.
+Os arquivos são encontrados no endereço:
+[Matrizes de Insumo-Produto do IBGE](https://www.ibge.gov.br/estatisticas/economicas/contas-nacionais/9085-matriz-de-insumo-produto.html?=&t=downloads)
+
+
+Os arquivos para cada ano estão em formato *.zip* contendo as diversas tabelas disponibilizadas. Neste desafio usaremos as tabelas de recursos, para encontrar o valor do **VBP** setorial; a tabela de demanda da produção nacional, para encontrar o vetor de **FBCF** (inverstimento) por produto; a tabela de demanda final, para encontrar o valor **total da FBCF** da economia; a tabela de renda/valor adicionado, para encontrar o **Pessoal Ocupado** por setor e as tabelas contendo as matrizes de **market-share** e **inversa de Leontief**.
+```{r message=FALSE, warning=FALSE, include=T}
+# Carregando pacotes
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(plotly)
+library(knitr)
+library(kableExtra)
+```
+
+<h4>Carregando datasets</h4>
+
+
+Os objetos abaixo, utilizados ao longo do trabalho, seguem a mesma estrutura, mudando apenas o ano da informação:
+<ul>
+<li>`FBCF`: Formação Bruta de Capital Fixo,</li> 
+<li>`FBCF_TOTAL`: Valor total da FBCF da Demanda final, </li>
+<li>`PO`: Pessoal Ocupado, </li>
+<li>`VBP`: Valor Bruto de Produção Setorial, </li>
+<li>`DE`: Matriz de Market-Share, </li>
+<li>`B`: Matriz inversa de Leontief.</li>
+</ul>
+
+```{r message=FALSE, warning=FALSE, include=T} 
+# Carregando os dados de 1985
+
+FBCF_1985 <- as.matrix(read_excel("TABELA03_1985.xls", sheet =1, range = "AV6:AV85", col_names = FALSE))
+FBCF_1985_TOTAL <- 261333 
+PO_1985 <- as.matrix(read_excel("Tabela01_1985.xls", sheet =4, range = "B21:AQ21", col_names = FALSE))
+VBP_1985 <- as.matrix(read_excel("TABELA02_1985.xls", sheet =1, range = "CE6:CE47", col_names = FALSE))
+DE_1985 <- as.matrix(read_excel("TABELA19_1985.xls", sheet =1, range = "C6:CD47", col_names = FALSE)) 
+B_1985 <- as.matrix(read_excel("TABELA21_1985.xls", sheet =1, range = "C6:AR47", col_names = FALSE))
+
+# Carregando os dados de 1995
+
+FBCF_1995 <- as.matrix(read_excel("Tabela03_1995.xls", sheet =1, range = "AV7:AV86", col_names = FALSE))
+FBCF_1995_TOTAL <- 132753432 
+PO_1995 <- as.matrix(read_excel("Tabela02_1995.xls", sheet =3, range = "B19:AQ19", col_names = FALSE))
+VBP_1995 <- as.matrix(read_excel("Tabela01_1995.xls", sheet = 2, range = "c87:AR87", col_names = F))
+DE_1995 <- as.matrix(read_excel("Tabela18_1995.xls", sheet =1, range = "C6:CD47", col_names = FALSE))
+B_1995 <- as.matrix(read_excel("Tabela20_1995.xls", sheet =1, range = "C6:AR47", col_names = FALSE))
+
+# Carregando os dados de 2005
+
+FBCF_2005 <- as.matrix(read_excel("tab03_2005.xls", sheet =1, range = "U6:U17", col_names = FALSE))
+FBCF_2005_TOTAL <-   342237
+VBP_2005 <- as.matrix(read_excel("tab01_2005.xls", sheet = 1, range = "L20:W20", col_names = FALSE))
+PO_2005 <- as.matrix(read_excel("tab02_2005.xls", sheet =1, range = "C38:N38", col_names = FALSE))
+DE_2005 <- as.matrix(read_excel("tab07_2005.xls", sheet =1, range = "C6:N17", col_names = FALSE))
+B_2005 <- as.matrix(read_excel("tab09_2005.xlsx", sheet =1, range = "C6:N17", col_names = FALSE))
+
+# Carregando os dados de 2015
+
+FBCF_2015 <- as.matrix(read_excel("MIP_2015.xls", sheet =3, range = "U6:U17", col_names = FALSE))
+FBCF_2015_TOTAL <-  1069397
+PO_2015 <- as.matrix(read_excel("tab2_2015.xls", sheet = 3, range = "B19:M19", col_names = FALSE))
+VBP_2015 <- as.matrix(read_excel("MIP_2015.xls", sheet = 1, range = "H19:S19", col_names = FALSE))
+DE_2015 <- as.matrix(read_excel("MIP_2015.xls", sheet =13, range = "C6:N17", col_names = FALSE))
+B_2015 <- as.matrix(read_excel("MIP_2015.xls", sheet =15, range = "C6:N17", col_names = FALSE))
+```
+
+```{r message=F, warning=F, include=F}
+options(scipen=999)
+```
+
+### Relação emprego por investimento
+
+O primeiro passo é a transformação do investimento valores setoriais. Como os dados da demanda das matrizes são representadas por produto, precisamos transformar o vetor da **FBCF** em setorial. Para isso utilizamos a matriz de market-share para encontrat a proporção de cada setor dos valores dos investimentos. O vetor de **FBCF** setorial é encontrado através da pré multiplicação do vetor de FBCF por produto pela matriz de Market-Share.
+
+```{r message=FALSE, warning=FALSE, include=T} 
+FBCF_1985_setor <- DE_1985 %*% FBCF_1985
+FBCF_1995_setor <- DE_1995 %*% FBCF_1995
+FBCF_2005_setor <- DE_2005 %*% FBCF_2005
+FBCF_2015_setor <- DE_2015 %*% FBCF_2015
+```
+
+Em seguida encontramos a unidade padrão de investimento para cada um dos anos. A unidade padrão de investimento corresponde à razão entre o investimento setorial e o investimento local. chamaremos aqui de coeficiente de investimento `c_FBCF`.
+
+
+É importante ter em mente que parte do investimento é realizado por meio da compra de capitais importados, por isso a soma dos coeficientes dará menos que 1, uma vez que usamos os dados de investimento total a preços de mercador. Isso é importante para filtrar as fugas de investimentos traduzidos em importação, impostos, etc.
+
+```{r message=FALSE, warning=FALSE, include=T}
+#calculando a unidade padrão de investimento, ou coeficiente de investimento em relação ao investimento total.
+c_FBCF_1985 <- as.matrix(apply(FBCF_1985_setor, 1, "/", FBCF_1985_TOTAL))
+c_FBCF_1995 <- as.matrix(apply(FBCF_1995_setor, 1, "/", FBCF_1995_TOTAL))
+c_FBCF_2005 <- as.matrix(apply(FBCF_2005_setor, 1, "/", FBCF_2005_TOTAL))
+c_FBCF_2015 <- as.matrix(apply(FBCF_2015_setor, 1, "/", FBCF_2015_TOTAL))
+```
+
+O próximo passo é encontrar o VBP setorial causado pela variação da unidade de investimento. Para isso pré multiplicamos o coeficiente de investimento pela matriz inversa de Leontief, que mede os impactos diretos e indiretos.
+
+```{r message=FALSE, warning=FALSE, include=T}
+MG_1985 <- B_1985 %*% c_FBCF_1985
+MG_1995 <- B_1995 %*% c_FBCF_1995
+MG_2005 <- B_2005 %*% c_FBCF_2005
+MG_2015 <- B_2015 %*% c_FBCF_2015
+```
+
+Agora precisamos encontrar a relação setorial Pessoal Ocupado sobre VBP, que será, posteriormente, multiplicado pela unidade padrão de investimento.Convém ressaltar que a matriz de insumo-produto para 2015 disponibilizada pelo IBGE não apresenta tabela referente à conta de renda/valor adicionado. Neste caso, o valor o **Pessoal Ocupado** para o ano de 2015 foi encontrado junto às **Tabelas de Recursos e Usos** na página do Sistema de Contas Nacionais.
+
+```{r message=FALSE, warning=FALSE, include=T}
+c_PO_1985 <- t(PO_1985)/VBP_1985
+c_PO_1995 <- t(PO_1995/VBP_1995)
+c_PO_2005 <- t(PO_2005/VBP_2005)
+c_PO_2015 <- t(PO_2015/VBP_2015)
+```
+
+O resultado encontrado é o vetor de empregos setoriais criados na economia pela variação de uma unidade de investimento. A soma dos vetores dá o valor total de empregos criados pela variação do investimento.
+
+```{r message=FALSE, warning=FALSE, include=T}
+M_FBCF_1985 <- MG_1985 * c_PO_1985
+M_FBCF_1995 <- MG_1995*c_PO_1995
+M_FBCF_2005 <- MG_2005*c_PO_2005
+M_FBCF_2015 <- MG_2015*c_PO_2015
+
+#soma dos vetores
+PO_FBCF_1985 <- sum(M_FBCF_1985)
+PO_FBCF_1995 <- sum(M_FBCF_1995)
+PO_FBCF_2005 <- sum(M_FBCF_2005)
+PO_FBCF_2015 <- sum(M_FBCF_2015)
+```
+
+<h4>Tabela 1 - Empregos gerados pela variação de investimento (FBCF)
+```{r include =F}
+tabela1 <- data.frame("Ano" = c(1985, 1995, 2005, 2015), "Empregos" = c(round(sum(M_FBCF_1985),2), round(sum(M_FBCF_1995),2), round(sum(M_FBCF_2005),2), round(sum(M_FBCF_2015),2)), "Variação investimento" = c("Cr$10^9", "R$1.000", "R$10^6", "R$10^6"))
+```
+
+```{r echo=F, results='asis'}
+kable(tabela1) %>% kable_styling(font_size = 14)
+```
+
+### Investimentos necessários para gerar um equivalente-homem-ano
+O resultado encontrado anteriormente mostra o número de empregos (equivalente-homem-ano) criados com a variação de uma unidade de investimento. Para encontrarmos o investimento necessários pra gerar **um** equivalente-homem-ano, dividimos a unidade de investimento pelo número de empregos gerados. Assim temos os investimento necessário para gerar um equivalente-homem-ano nos valores correntes dos respectivos anos.
+
+``` {r message= F, warning=F}
+FBCF_PO_1985 <- (10^9)/sum(M_FBCF_1985)
+FBCF_PO_1995 <- (1000)/sum(M_FBCF_1995)
+FBCF_PO_2005 <- (10^6)/sum(M_FBCF_2005)
+FBCF_PO_2005 <- (10^6)/sum(M_FBCF_2005)
+```
+
+<h4>Tabela 2 - Investimento necessário para gerar um equivalente-homem-ano, em valores correntes
+```{r include=F}
+tabela2 <- data.frame("Ano" = c(1985, 1995, 2005, 2015), "Investimento necessário" = c(round((10^9)/sum(M_FBCF_1985), 2), round((1000)/sum(M_FBCF_1995),2), round((10^6)/sum(M_FBCF_2005),2), round((10^6)/sum(M_FBCF_2015), 2)))
+
+```
+
+```{r echo=F, results='asis'}
+kable(tabela2) %>% kable_styling(font_size = 14)
+```
+
+<h4> Deflacionando</h4>
+
+Os dados da tabela 2 correspondem aos valores correntes dos respectivos anos. Há o agravante de os valores de 1985 estarem regristrados em Cruzeiros. O passo a seguir refere-se à transformação dos dados em valores constantes de 2015. A primeira etapa consiste na conversão dos valores de 1985 de Cruzeiros para Reais.
+Para conversão será utilizada a Tabela de Conversão para a Unidade Monetária Vigente, publicada no Diário Oficial da União, que pode ser encontrada [aqui](https://www.sei.ba.gov.br/images/indicadores_especiais/xls/outros_indices/ind_outros_tab_conversao.xls). Segundo a tabela, a conversão entre Cruzeiro e Real é da ordem de $\frac{1}{275\cdot 10^{10}}$
+
+
+Além da conversão monetária dos valores de 1985, utiliza-se o deflator implícito do PIB, que pode ser encontrado na série história no [IpeaData](http://www.ipeadata.gov.br/Default.aspx). Desta forma, o resultado da Tabela 3 mostra os valores de investimento (FBCF) necessários para se obter o equivalente-homem-ano para os anos de 1985, 1995, 2005 e 2015, utilizando as matrizes de insumo-produto.
+
+```{r include=F}
+#converentndo Cr$ em R$
+cr_r <- 1/2750000000000
+
+#atualizando com o deflator implicito do PIB
+inv_1985 <- 1000000000/sum(M_FBCF_1985)*cr_r*5847304483
+inv_1995 <- ((1000)/sum(M_FBCF_1995))*5.027356932
+inv_2005 <- ((10^6)/sum(M_FBCF_2005))*2.097314736
+inv_2015 <- (10^6)/sum(M_FBCF_2015)
+
+
+#gerando tabela
+tabela3 <- data.frame("Ano" = c(1985,1995,2005,2015), "Investimento" = format(c(inv_1985, inv_1995, inv_2005, inv_2015), big.mark = ".", decimal.mark = ","))
+```
+
+<h4> Tabela 3 - Investimento (FBCF) necessário para se obter o equivalente-homem-ano, em valores de 2015
+```{r echo=F, results='asis'}
+kable(tabela3) %>% kable_styling(font_size = 14)
+```
+
+### Análise dos resultados
+
+Em 1985, quando a economia brasileira era relativamente fechada, cerca de 92% dos investimentos realizados pela empresas brasileiras ficavam no país, ou seja, eram destinados à compra de bens de capital nacionais. Com a abertura comercial dos anos 1990, a parcela doméstica nos investimento foi caindo. Em 1995, 88% do investimento era de conteúdo local. Em 2005 esse valor cai para 83%, enquanto que em 2015 volta a crescer, para cerca de 87%.
+Isso significa que, *ceteris paribus* mais investimentos são necessários para a geração de um emprego, uma vez que há o vazamento de parte destes investimentos.
+
+Entretanto, apesar de subir em 1995, corroborando com a tese anterior, o investimento necessário para se obter uma unidade do equivalente-homem-ano cai consideravelmente nas décadas posteriores. Este fenômeno poderia ser explicado pelo aumento da produtividade do trabalho. Entretanto, se verificarmos os dados de Pessoal Ocupado em cada um dos anos das matrizes, vemos que, enquanto o número de pessoal ocupado cresceu cerca de 13% entre 1985 e 1995 e 12% entre 2005 e 2015, houve um crescimento de quase 50% entre os valores de 1995 e 2005. Esse fenômeno pode ser explicado, possivelmente, por mudanças na metodologia de cálculo da variável de emprego (pessoal ocupado) o que afeta a capacidade de análise comparativa em relação à produtividade do trabalho com dados das matrizes do IBGE.
+
+<h4> Gráfico 1 - evolução do investimento necessário para gerar um equivalente-homem-ano, em valores de 2015.
+```{r echo = F, results='asis'}
+ggplot(tabela3, aes(x = Ano, y = Investimento, group=1))+
+  geom_line()+
+  theme_classic()+
+  scale_x_continuous(breaks = tabela3$Ano)
+```
+
+
+ 

@@ -105,12 +105,12 @@ indices_ligacao  <- data.frame(nomes, Uio, Uoj)
 names(indices_ligacao) <- c("setor", "Uio", "Uoj")
 ```
 
-<h4>Tabela 1 - Índices de ligação de Rasmussen-Hirscham, Brasil 2017
+<h4>Tabela 1 - Índices de ligação de Rasmussen-Hirschman, Brasil 2017
 ```{r echo=FALSE, results='axis'}
 kable(indices_ligacao) %>% kable_styling(font_size = 14) %>% scroll_box(width = "900px", height = "500px")
 ```
 
-<h4> Gráfico 1 - Índices de ligação de Rasmussen-Hirscham, Brasil 2017
+<h4> Gráfico 1 - Índices de ligação de Rasmussen-Hirschman, Brasil 2017
 ```{r message=F, warning=F, include=FALSE}
 #criando variável para setores chave
 indices_ligacao$chave <- ifelse(indices_ligacao$Uio > 1 & indices_ligacao$Uoj > 1, "Setor chave", "-")
@@ -142,4 +142,16 @@ dispersão_indices_html
 ```
 
 ### Análise dos resultados
-tetetet
+Ao longo do tempo, foram desenvolvidas na literatura, diversas medidas de encadeamento e identificação de setores-chave em modelos de insumo-produto. Uma das medidas mais notórias são os índices desenvolvidos por Rasmussen e aperfeiçoado por Hirschman. Esses índices de encadeamento de Rasmussen-Hirschman medem o poder de ligação dos setores enquanto compradores de insumos (ligação para trás) e enquanto fornecedores de produtos intermediários (ligações para frente). Definidos por $U_j = \frac{[B_{*j}/n]}{B^*}$ e $U_i =\frac{[B_{i*}/n]}{B^*}$.
+
+
+Como a construção dos índices leva em conta a média dos valores da matriz inversa de Leontief, valores maiores que 1 indicam que o setor apresenta ligações acima da média da economia. A ocorrência conjunta de $U_j > 1$ e $U_i > 1$ configuram, segundo a literatura, o setor como chave para o crescimento da economia. 
+
+
+No caso da economia brasileira para o ano de 2017, a tabela 1 mostra a relação dos 68 setores do modelo de insumo-produto e seus respectivos índices de ligação de Rasmussen-Hirschman. Pode-se perceber que em 2017, 13 dos 68 setores da economia brasileira se caracterizam como chave para o crescimento da economia nacional. São eles: ` Extração de petróleo e gás, inclusive as atividades de apoio`, ` Fabricação de celulose, papel e produtos de papel`, ` Refino de petróleo e coquerias`, ` Fabricação de químicos orgânicos e inorgânicos, resinas e elastômeros`, ` Fabricação de defensivos, desinfetantes, tintas e químicos diversos`, ` Fabricação de produtos de borracha e de material plástico`, ` Produção de ferro-gusa/ferroligas, siderurgia e tubos de aço sem costura`, ` Fabricação de produtos de metal, exceto máquinas e equipamentos`, ` Manutenção, reparação e instalação de máquinas e equipamentos`, ` Energia elétrica, gás natural e outras utilidades`, ` Transporte terrestre`, ` Atividades de televisão, rádio, cinema e  gravação/edição de som e imagem`, ` Outras atividades profissionais, científicas e técnicas`. 
+
+
+Além da identificação dos setores-chave, a economia brasileira apresentou 21 setores (incluindo os 13 setores-chave) com alto poder de ligação para frente, ou seja, setores fornecedores de insumos para outros setores da economia local. Verifica-se, também, a presenta de 38 setores (incluindo os 13 setores-chave) com forte índice de ligação para trás. São setores demandantes de insumos produzidos localmente e, portanto, dependentes da oferta intersetorial local. Há ainda, 22 setores para os quais nenhum dos índices de ligação apresentam valores altos. São setores que não são fortemente ligados com outros setores da cadeia produtiva nacional, sendo pouco afetados por estímulos a outros setores e afetando pouco os demais setores quando estimulados. O gráfico 1 mostra a relação de cada um dos setores num gráfico de dispersão, com a divisão em 4 quadrantes, cada um representando uma interpretação da conexão do setor com os demais. Os setores-chave aparecem em azul no gráfico. É possível consultá-los ao passar o mouse por cima da respectiva bolinha do gráfico de dispersão.
+
+
+Convém, no entanto, ressaltar que há críticas aos índices de ligação de Rasmussen-Hirschman que devem ser levadas em consideração. Uma das críticas reside no fato de que este indicador não mede questões de concentração setorial. Um valor alto da ligação para trás (para frente) pode significar concentração em poucos setores, além, de não medir os diferentes níveis de produção dos setores.
