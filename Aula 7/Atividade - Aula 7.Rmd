@@ -1,0 +1,215 @@
+---
+title: "Applied General Equilibrium Models I and II - USP"
+author: 'Aluno: Rodrigo Cerqueira - NUSP 12108767'
+github:
+  user: RodrigoCerqueira
+  repo: Applied-General-Equilibrium-Models_USP
+framework: bootstrap
+mode: selfcontained
+widgets: nyt_home
+highlighter: prettify
+assets:
+  css:
+  - http://fonts.googleapis.com/css?family=Raleway:300
+  - http://fonts.googleapis.com/css?family=Oxygen
+---
+
+<style>
+body{
+  font-family: 'Oxygen', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+h1,h2,h3,h4 {
+  font-family: 'Raleway', sans-serif;
+}
+
+.container { width: 1000px; }
+h3 {
+  background-color: #D4DAEC;
+  text-indent: 0px; 
+}
+h4 {
+  text-indent: 0px;
+}
+
+g-table-intro h4 {
+  text-indent: 0px;
+}
+</style>
+
+<a href="https://github.com/RodrigoCerqueira/Applied-General-Equilibrium-Models_USP/tree/master/Aula%205/Atividades/Desafio"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"></a>
+
+# Decomposição da Produção Regional baseada na origem da Demanda Fial
+
+### Descrição
+
+Esta página corresponde aos códigos desenvolvidos em linguagem R para a resolução da atividade referente à aula 7 do curso Applied General Equilibrium Models I and II - USP.
+
+### Atividades 
+
+Escolher um dos arranjos populacionais do banco de dados e preencher a tabela a partir da decomposição do produto de cada região do modelo considerando as origens da demanda final.
+
+### Tratamento dos dados
+
+Foram utilizados os pacotes `readxl` para leitura dos dados em xlsx, os pacotes `dplyr` para manipulação dos dados e os pacotes `knitr` e `kableExtra` para elaboração deste relatório escrito em `R Markdown`.
+
+
+O primeiro passo consiste em baixar, no site do [Nereus](http://www.usp.br/nereus/?txtdiscussao=estrutura-das-matrizes-de-insumo-produto-dos-arranjos-populacionais-do-brasil-2015-nota-tecnica), as tabelas referentes ao banco de dados do Arranjo populacional analisado. Neste exercício foi escolhido o arranjo populacional de Salvador.
+
+
+```{r message=FALSE, warning=FALSE, include=T}
+# Carregando pacotes
+library(readxl)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+```
+
+<h4>Carregando datasets</h4>
+
+Após baixar o arquivo contendo as tabelas do arranjo populacional de Salvador, foi feita a leitura das matrizes e vetores necessários para o cálculo da atividade. Foram utilizadas além da Matriz Inversa de Leontief (B), os vetores de demanda final para cada uma das regiões: Investimento (invest), consumo das famílias (consumo), gastos do Governo (G), consumo das Instituições Sem Fins Lucrativos à Serviço das Famílias (ISFLSF), exportações (Ex) e 
+discrepância estatística (rest).
+
+```{r message=FALSE, warning=FALSE, include=T} 
+# Carregando as matrizes e vetores necessários
+B <- as.matrix(read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 6, range = "D4:CM91", col_names = FALSE, col_types = "numeric"))
+
+# dados da demanda final por região
+
+# investimento por região de origem
+invest_R1 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CN4:CN91", col_names = FALSE, col_types = "numeric")
+invest_R2 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CO4:CO91", col_names = FALSE, col_types = "numeric")
+invest_R3 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CP4:CP91", col_names = FALSE, col_types = "numeric")
+invest_R4 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CQ4:Cq91", col_names = FALSE, col_types = "numeric")
+
+# consumo das famílias por região de origem
+consumo_R1 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CR4:CR91", col_names = FALSE, col_types = "numeric")
+consumo_R2 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CS4:CS91", col_names = FALSE, col_types = "numeric")
+consumo_R3 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CT4:CT91", col_names = FALSE, col_types = "numeric")
+consumo_R4 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CU4:CU91", col_names = FALSE, col_types = "numeric")
+
+# gastos do governo por região de origem
+G_R1 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CV4:CV91", col_names = FALSE, col_types = "numeric")
+G_R2 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CW4:CW91", col_names = FALSE, col_types = "numeric")
+G_R3 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CX4:CX91", col_names = FALSE, col_types = "numeric")
+G_R4 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "CY4:CY91", col_names = FALSE, col_types = "numeric")
+
+# consumo ISFLSF por região de origem
+ISFLSF_R1 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "Cz4:Cz91", col_names = FALSE, col_types = "numeric")
+ISFLSF_R2 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "DA4:DA91", col_names = FALSE, col_types = "numeric")
+ISFLSF_R3 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "DB4:DB91", col_names = FALSE, col_types = "numeric")
+ISFLSF_R4 <- read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "DC4:DC91", col_names = FALSE, col_types = "numeric")
+
+# exportações para outros países
+Ex <- as.matrix(read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "DD4:DD91", col_names = FALSE, col_types = "numeric"))
+
+# discrepância estatística
+rest <- as.matrix(read_excel("IIOAS_APSAL_22SETORES_2015.xlsx", sheet = 5, range = "DE4:DE91", col_names = FALSE, col_types = "numeric"))
+```
+
+<h4> Agregando as demandas finais por Região</h4>
+Para decompor a produção por origem da demanda final é necessário agrupar os diferentes vetores de demanda final em um único vetor, representando a da demanda final para cada uma das regiões.
+```{r message=FALSE, warning=FALSE, include=T} 
+######## Juntando as demandas finais por Região de origem
+DF_R1 = as.matrix(invest_R1 + consumo_R1 + G_R1 + ISFLSF_R1)
+DF_R2 = as.matrix(invest_R2 + consumo_R2 + G_R2 + ISFLSF_R2)
+DF_R3 = as.matrix(invest_R3 + consumo_R3 + G_R3 + ISFLSF_R3)
+DF_R4 = as.matrix(invest_R4 + consumo_R4 + G_R4 + ISFLSF_R4)
+```
+
+<h4> Cálculo do VBP por origem de demanda final</h4>
+
+Com a agregação da demanda final por região de origem é possível calcular o VBP por origem de demanda final, para isso pré multiplicados os vetores de demanda final de cada uma das regiões pela matriz inversa de Leontief do Sistema.
+```{r message=FALSE, warning=FALSE, include=T} 
+####### Calculando o VBP com base na origem da demanda
+
+#vetor de VBP por origem de demanda
+VBP_DR1 <- B %*% DF_R1
+VBP_DR2 <- B %*% DF_R2
+VBP_DR3 <- B %*% DF_R3
+VBP_DR4 <- B %*% DF_R4
+VBP_Exp <- B %*% Ex
+VBP_rest <- B %*% rest
+```
+
+```{r message=F, warning=F, include=F}
+#Separando o VBP originado da Demanda final da Região 1, por origem do produto
+VBP_R1_DR1 <- VBP_DR1[1:22,]
+VBP_R2_DR1 <- VBP_DR1[23:44,]
+VBP_R3_DR1 <- VBP_DR1[45:66,]
+VBP_R4_DR1 <- VBP_DR1[67:88,]
+
+#separando VBP originado da Demanda final da Região 2, por origem do produto
+VBP_R1_DR2 <- VBP_DR2[1:22,]
+VBP_R2_DR2 <- VBP_DR2[23:44,]
+VBP_R3_DR2 <- VBP_DR2[45:66,]
+VBP_R4_DR2 <- VBP_DR2[67:88,]
+
+#separando VBP originado da Demanda final da Região 3, por origem do produto
+VBP_R1_DR3 <- VBP_DR3[1:22,]
+VBP_R2_DR3 <- VBP_DR3[23:44,]
+VBP_R3_DR3 <- VBP_DR3[45:66,]
+VBP_R4_DR3 <- VBP_DR3[67:88,]
+
+#separando VBP originado da Demanda final da Região 4, por origem do produto
+VBP_R1_DR4 <- VBP_DR4[1:22,]
+VBP_R2_DR4 <- VBP_DR4[23:44,]
+VBP_R3_DR4 <- VBP_DR4[45:66,]
+VBP_R4_DR4 <- VBP_DR4[67:88,]
+
+#Separando VBP originado das Exportações, por origem do produto
+VBP_R1_Exp <- VBP_Exp[1:22,]
+VBP_R2_Exp <- VBP_Exp[23:44,]
+VBP_R3_Exp <- VBP_Exp[45:66,]
+VBP_R4_Exp <- VBP_Exp[67:88,]
+
+#criando matriz de resultados - colunas
+R1 <- c(sum(VBP_R1_DR1), sum(VBP_R2_DR1), sum(VBP_R3_DR1), sum(VBP_R4_DR1))
+R2 <- c(sum(VBP_R1_DR2), sum(VBP_R2_DR2), sum(VBP_R3_DR2), sum(VBP_R4_DR2))
+R3 <- c(sum(VBP_R1_DR3), sum(VBP_R2_DR3), sum(VBP_R3_DR3), sum(VBP_R4_DR3))
+R4 <- c(sum(VBP_R1_DR4), sum(VBP_R2_DR4), sum(VBP_R3_DR4), sum(VBP_R4_DR4))
+Exp <- c(sum(VBP_R1_Exp), sum(VBP_R2_Exp), sum(VBP_R3_Exp), sum(VBP_R4_Exp))
+Total <- as.matrix(c((R1+R2+R3+R4+Exp)))
+
+decomposicao <- data.frame(R1, R2, R3, R4, Exp, Total)
+
+decomposicao <- rbind(decomposicao, apply(decomposicao, 2, sum))
+
+row.names(decomposicao) <-  c("R1", "R2", "R3", "R4", "Total")
+
+decomposicao_linha <- round(as.matrix(apply(decomposicao, 2, "/", decomposicao$Total/100)),2)
+
+decomposicao_coluna <- round(t(as.matrix(apply(decomposicao, 1, "/", t(decomposicao[5,]/100)))),2)
+
+colnames(decomposicao_coluna) <- c("R1", "R2", "R3", "R4", "Exp", "Total")
+
+```
+
+### Resultados
+
+Os resultados encontrados podem ser vistos nas tabelas 1, 2 e 3. a Tabela 1 mostra o valor total do VBP do sistema de insumo-produto do arranjo populacional de Salvador, segundo as origens de demanda final. As tabelas 2 e 3 mostram, respectivamente, as participações das regiões nas linhas e colunas.
+
+<h4> Tabela 1 - VBP total por origem da demanda final (em milhões de R$)</h4>
+```{r echo=F, results='asis'}
+kable(decomposicao, format.args = list(decimal.mark = ',', big.mark = "."), digits = 2) %>% kable_styling(font_size = 14)
+```
+
+<h4> Tabela 2 - Participação relativa (%) das demandas finais regionais no VBP das regiões
+```{r echo=F, results='asis'}
+kable(decomposicao_linha) %>% kable_styling(font_size = 14)
+```
+
+<h4> Tabela 3 - Distribuição da participação (%) da demanda final regional na geração do VBP das regiões
+```{r echo=F, results='asis'}
+kable(decomposicao_coluna) %>% kable_styling(font_size = 14)
+```
+
+### Análise dos Resultados
+
+A decomposição do VBP do sistema inter-regional de insumo-produto para o Arranjo Populacional de Salvador (2015), mostra que o VBP de Salvador é fortemente influenciado pela demanda final originada internamente (R1). Mais de 55% do VBP da capital baiana é originado por demanda local. Além da relevância da demanda local, a demanda do resto do Brasil (R4) também tem grande peso no VBP do município. Juntas, as duas regiões são responsáveis pela geração de mais de 88% do VBP de Salvador. Outro ponto curioso é a baixa participação das demais cidades baianas, tanto as que compõem o Arranjo Populacional de Salvador (R2), quanto as demais cidades do Estado (R3). Juntas essas duas regiões contribuem com pouco mais 7% do VBP soteropolitano. 
+
+Da mesma forma que a demanda final de outros municípios baianos contribui pouco com o VBP de Salvador, os dados da tabela 2 mostram que a demanda final de Salvador contribui pouco com o VBP dos demais municípios do Estado (R2 e R3). Apenas 7,6% do VBP da Região 2 (restante do Arranjo Populacional) e 2,3% do VBP da Região 3 (restante do estado), são gerados por demanda final de Salvador.
+
+Outro ponto que mecere destaque é a relevância da Bahia para o Brasil, do ponto de vista do demanda final. Quando olhamos para os dados da tabela 2, vemos que o Estado da Bahia, e suas diferentes regiões (R1, R2 e R3), contribui com pouco mais de 2% para o VBP do restante do Brasil. Essa informação é ainda mais relevante quando colocamos ao lado de dados que mostram a Bahia como a maior economia do Nordeste e entre as sete maiores do país.
